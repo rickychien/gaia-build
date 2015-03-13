@@ -1,0 +1,1 @@
+var clock = 'build.js';
