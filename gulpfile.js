@@ -15,6 +15,7 @@ var zip = require('gulp-zip');
 var tap = require('gulp-tap');
 var merge = require('merge-stream');
 var fs = require('fs');
+var workerFarm = require('worker-farm');
 
 var appList = argv.app ? [argv.app] : fs.readdirSync('apps');
 var ignores = ['!apps/**/+(build|test)/**'];
@@ -25,39 +26,16 @@ gulp.task('clean', function() {
 });
 
 gulp.task('build-apps', function() {
-  var tasks = appList.map(function(app) {
-    var dest = 'profile/' + app;
-
-    var script = gulp.src(['apps/' + app + '/**/*.js'].concat(ignores))
-      .pipe(changed(dest, { extension: '.js' }))
-      .pipe(minifyJS());
-
-    var style = gulp.src(['apps/' + app + '/**/*.css'].concat(ignores))
-      .pipe(changed(dest, { extension: '.css' }))
-      .pipe(minifyCSS({ processImport: false }));
-
-    var template = gulp.src(['apps/' + app + '/**/*.html'].concat(ignores))
-      .pipe(changed(dest, { extension: '.html' }))
-      .pipe(minifyHTML());
-
-    var manifest = gulp.src('apps/' + app + '/manifest.webapp')
-      .pipe(changed(dest, { extension: '.webapp' }))
-      .pipe(JSONMinify());
-
-    var sharedScript = gulp.src('shared/**/*.js', { base: './' })
-      .pipe(changed(dest, { extension: '.js' }))
-      .pipe(minifyJS());
-
-    var sharedStyle = gulp.src('shared/**/*.css', { base: './' })
-      .pipe(changed(dest, { extension: '.css' }))
-      .pipe(minifyCSS());
-
-    return merge(script, style, template, manifest, sharedScript, sharedStyle)
-      .pipe(zip('application.zip'))
-      .pipe(gulp.dest('profile/' + app));
+  var appWorker = workerFarm(require.resolve('./build_app'));
+  var applistIndex = 0;
+  appList.map(function(app) {
+    appWorker(app, function(result) {
+      console.log(applistIndex++);
+      if (applistIndex === appList.length) {
+        workerFarm.end(appWorker);
+      }
+    });
   });
-
-  return merge(tasks);
 });
 
 gulp.task('default', ['build-apps']);
