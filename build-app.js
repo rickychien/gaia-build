@@ -1,27 +1,23 @@
-var gulp = require('gulp');
-var argv = require('yargs').argv;
-var changed = require('gulp-changed');
-var rimraf = require('gulp-rimraf');
-var concat = require('gulp-concat');
-var uglify = require('gulp-uglify');
-var minifyCSS = require('gulp-minify-css');
-var minifyHTML = require('gulp-minify-html');
-var JSONMinify = require('gulp-jsonminify');
-var zip = require('gulp-zip');
-var tap = require('gulp-tap');
-var merge = require('merge-stream');
-var workerFarm = require('spawn-task-experiment').workerPool();
+'use strict';
 
-var ignores = [
-  '!apps/**/test/**',
-  '!apps/**/build/**'
-];
+/* jshint node: true */
+
+var gulp = require('gulp');
+var changed = require('gulp-changed');
+var minifyJS = require('gulp-jsmin');
+var minifyCSS = require('gulp-minify-css');
+var minifyHTML = require('gulp-html-minifier');
+var minifyJSON = require('gulp-jsonminify');
+var zip = require('gulp-zip');
+var merge = require('merge-stream');
+
+var ignores = ['!apps/**/+(build|test)/**'];
 
 module.exports = function(app, callback) {
   var dest = 'profile/' + app;
+
   var script = gulp.src(['apps/' + app + '/**/*.js'].concat(ignores))
-    .pipe(changed(dest, { extension: '.js' }))
-    .pipe(uglify());
+    .pipe(changed(dest, { extension: '.js' }));
 
   var style = gulp.src(['apps/' + app + '/**/*.css'].concat(ignores))
     .pipe(changed(dest, { extension: '.css' }))
@@ -33,20 +29,19 @@ module.exports = function(app, callback) {
 
   var manifest = gulp.src('apps/' + app + '/manifest.webapp')
     .pipe(changed(dest, { extension: '.webapp' }))
-    .pipe(JSONMinify());
+    .pipe(minifyJSON());
 
   var sharedScript = gulp.src('shared/**/*.js', { base: './' })
-    .pipe(changed(dest, { extension: '.js' }))
-    .pipe(uglify());
+    .pipe(changed(dest, { extension: '.js' }));
 
   var sharedStyle = gulp.src('shared/**/*.css', { base: './' })
     .pipe(changed(dest, { extension: '.css' }))
     .pipe(minifyCSS());
 
-  var streams = merge(script, style, template, manifest, sharedScript, sharedStyle)
+  return merge(script, style, template, manifest, sharedScript, sharedStyle)
     .pipe(zip('application.zip'))
-    .pipe(gulp.dest('profile/' + app));
-  streams.once('end', function() {
-    callback();
-  });
+    .pipe(gulp.dest(dest))
+    .once('end', function() {
+      callback && callback();
+    });
 };
