@@ -9,7 +9,6 @@ var minifyJS = require('jsmin2');
 var minifyCSS = require('gulp-minify-css');
 var minifyHTML = require('gulp-html-minifier');
 var minifyJSON = require('gulp-jsonminify');
-var tap = require('gulp-tap');
 var zip = require('gulp-zip');
 var merge = require('merge-stream');
 
@@ -32,9 +31,10 @@ module.exports = function(app, callback) {
   var manifest = gulp.src('apps/' + app + '/manifest.webapp')
     .pipe(changed(dest, { extension: '.webapp' }))
 
-  var other = gulp.src(['apps/' + app + '/**/*.*', '!(.js|.css|.html)'])
+  var other = gulp.src(['apps/' + app + '/**/*.*', '!**/*.+(js|css|html)']
+    .concat(ignores));
 
-  return merge(script, style, template, manifest)
+  return merge(script, style, template, manifest, other)
     .pipe(zip('application.zip'))
     .pipe(gulp.dest(dest))
     .once('end', function() {
