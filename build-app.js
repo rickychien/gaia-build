@@ -3,45 +3,43 @@
 /* jshint node: true */
 
 var gulp = require('gulp');
+var change = require('gulp-change');
 var changed = require('gulp-changed');
-var minifyJS = require('gulp-jsmin');
+var minifyJS = require('jsmin2');
 var minifyCSS = require('gulp-minify-css');
 var minifyHTML = require('gulp-html-minifier');
 var minifyJSON = require('gulp-jsonminify');
+var tap = require('gulp-tap');
 var zip = require('gulp-zip');
 var merge = require('merge-stream');
 
-var ignores = ['!apps/**/+(build|test)/**'];
-
 module.exports = function(app, callback) {
+  var ignores = ['!apps/**/+(build|test)/**'];
   var dest = 'profile/' + app;
 
   var script = gulp.src(['apps/' + app + '/**/*.js'].concat(ignores))
-    .pipe(changed(dest, { extension: '.js' }));
+    .pipe(changed(dest, { extension: '.js' }))
+    .pipe(change(function(content) {
+      return minifyJS(content).code;
+    }));
 
   var style = gulp.src(['apps/' + app + '/**/*.css'].concat(ignores))
     .pipe(changed(dest, { extension: '.css' }))
-    .pipe(minifyCSS({ processImport: false }));
 
   var template = gulp.src(['apps/' + app + '/**/*.html'].concat(ignores))
     .pipe(changed(dest, { extension: '.html' }))
-    .pipe(minifyHTML());
 
   var manifest = gulp.src('apps/' + app + '/manifest.webapp')
     .pipe(changed(dest, { extension: '.webapp' }))
-    .pipe(minifyJSON());
 
-  var sharedScript = gulp.src('shared/**/*.js', { base: './' })
-    .pipe(changed(dest, { extension: '.js' }));
+  var other = gulp.src(['apps/' + app + '/**/*.*', '!(.js|.css|.html)'])
 
-  var sharedStyle = gulp.src('shared/**/*.css', { base: './' })
-    .pipe(changed(dest, { extension: '.css' }))
-    .pipe(minifyCSS());
-
-  return merge(script, style, template, manifest, sharedScript, sharedStyle)
+  return merge(script, style, template, manifest)
     .pipe(zip('application.zip'))
     .pipe(gulp.dest(dest))
     .once('end', function() {
-      callback && callback();
+      if (callback) {
+        callback();
+      }
     });
 };

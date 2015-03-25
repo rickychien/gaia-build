@@ -13,7 +13,7 @@ gulp.task('clean', function() {
     .pipe(rimraf('profile'));
 });
 
-gulp.task('build-apps', function(done) {
+gulp.task('default', function(done) {
   var appList = argv.app ? [argv.app] : fs.readdirSync('apps');
   var appWorker = workerFarm(require.resolve('./build-app'));
   var applistIndex = 0;
@@ -27,5 +27,3 @@ gulp.task('build-apps', function(done) {
     });
   });
 });
-
-gulp.task('default', ['build-apps']);
