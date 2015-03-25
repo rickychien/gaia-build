@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+
+'use strict';
+var jsmin = require('./jsminparser');
+var argv = require('minimist')(process.argv.slice(2));
+var fs = require('fs');
+
+var command = process.cwd();
+var outputFilePath = argv.o;
+
+var originalContent = fs.readFileSync(argv._[0], { encoding: 'utf8' });
+var outputContent = jsmin(originalContent).code;
+fs.writeFileSync(outputFilePath, outputContent);
+

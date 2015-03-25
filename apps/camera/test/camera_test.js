@@ -1,1 +1,0 @@
-var camera = 'test';
